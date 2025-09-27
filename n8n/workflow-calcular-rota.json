@@ -1,0 +1,132 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rota",
+        "responseMode": "onReceived"
+      },
+      "name": "Webhook Rota",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT latitude, longitude FROM usuarios_manaus WHERE telefone = {{$json[\"origem\"]}};"
+      },
+      "name": "Postgres Origem",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [500, 200],
+      "credentials": {
+        "postgres": "Postgres Credenciais"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT latitude, longitude FROM usuarios_manaus WHERE telefone = {{$json[\"destino\"]}};"
+      },
+      "name": "Postgres Destino",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [500, 400],
+      "credentials": {
+        "postgres": "Postgres Credenciais"
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{\n  origem: $items(\"Postgres Origem\")[0].json,\n  destino: $items(\"Postgres Destino\")[0].json\n}];"
+      },
+      "name": "Juntar Origem+Destino",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [800, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{\"http://osrm:5000/route/v1/driving/\" + $json[\"origem\"].longitude + \",\" + $json[\"origem\"].latitude + \";\" + $json[\"destino\"].longitude + \",\" + $json[\"destino\"].latitude + \"?overview=full&geometries=geojson\"}}",
+        "responseFormat": "json"
+      },
+      "name": "OSRM Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "responseBody": "={{ { \"rota\": $json[\"routes\"][0] } }}",
+        "options": {}
+      },
+      "name": "Responder Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1400, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Rota": {
+      "main": [
+        [
+          {
+            "node": "Postgres Origem",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Postgres Destino",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Origem": {
+      "main": [
+        [
+          {
+            "node": "Juntar Origem+Destino",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Destino": {
+      "main": [
+        [
+          {
+            "node": "Juntar Origem+Destino",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Juntar Origem+Destino": {
+      "main": [
+        [
+          {
+            "node": "OSRM Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OSRM Request": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "rota",
+        "responseMode": "onReceived"
+      },
+      "name": "Webhook Rota",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "=http://osrm:5000/route/v1/driving/{{$json[\"origem\"]}};{{$json[\"destino\"]}}?overview=full&geometries=geojson",
+        "responseFormat": "json"
+      },
+      "name": "OSRM Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [600, 200]
+    },
+    {
+      "parameters": {
+        "operation": "execute",
+        "query": "SELECT telefone, nome, latitude, longitude, checkin FROM usuarios_manaus;"
+      },
+      "name": "Postgres Read Usuarios",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [600, 400],
+      "credentials": {
+        "postgres": "Postgres Local"
+      }
+    },
+    {
+      "parameters": {
+        "mode": "keepKeyMatches",
+        "propertyName1": "rota",
+        "propertyName2": "usuarios"
+      },
+      "name": "Merge Rota+Usuarios",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "responseBody": "={{ {\"rota\": $json[\"data\"][0], \"usuarios\": $json[\"data\"][1] } }}",
+        "options": {}
+      },
+      "name": "Responder Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1200, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Rota": {
+      "main": [
+        [
+          {
+            "node": "OSRM Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Postgres Read Usuarios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OSRM Request": {
+      "main": [
+        [
+          {
+            "node": "Merge Rota+Usuarios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Read Usuarios": {
+      "main": [
+        [
+          {
+            "node": "Merge Rota+Usuarios",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Rota+Usuarios": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

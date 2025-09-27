@@ -1,0 +1,41 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "checkin",
+        "responseMode": "onReceived"
+      },
+      "name": "Webhook Checkin",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "execute",
+        "query": "UPDATE usuarios_manaus SET checkin = true, data_atualizacao = NOW() WHERE telefone = {{$json[\"telefone\"]}};"
+      },
+      "name": "Postgres Update Checkin",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [600, 300],
+      "credentials": {
+        "postgres": "Postgres Local"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Checkin": {
+      "main": [
+        [
+          {
+            "node": "Postgres Update Checkin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

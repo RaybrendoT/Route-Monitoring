@@ -1,0 +1,19 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    text-align: center;
+}
+
+#map {
+    height: 90vh;
+    width: 100%;
+}
+
+h1 {
+    margin: 10px 0;
+}
+
+p {
+    margin: 5px 0 10px 0;
+    font-size: 14px;
+}
